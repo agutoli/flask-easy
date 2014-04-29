@@ -75,9 +75,17 @@ class HttpResponse(object):
 class HttpRequest(object):
     def allowed_args(self, dict_args):
         parsed_args = {}
-        for arg in request.args.items():
-            arg_name = arg[0]
-            arg_value = arg[1]
+
+        for arg_key in request.args.items():
+            # invalid args
+            if not arg_key[0] in dict_args:
+                #import ipdb;ipdb.set_trace()
+                abort(400, "Invalid parameter '%s'" % arg_key[0])
+
+        #for arg in request.args.items():
+        for arg in dict_args:
+            arg_name = arg
+            arg_value = request.args.get(arg_name) 
 
             # defaults keys
             new_dict = dict({
@@ -88,9 +96,11 @@ class HttpRequest(object):
                 "min": None
             }.items() + dict_args[arg_name].items())
 
-            # invalid args
-            if not arg_name in dict_args:
-                abort(400, "Invalid parameter '%s' not allowed" % arg_name)
+            if new_dict['required'] == True and not arg_value:
+                abort(400, "Required parameter '%s'" % arg_name)
+
+            if not arg_value:
+                arg_value = new_dict['default']
 
             try:
                 parsed_args[arg_name] = new_dict['type'](arg_value)
@@ -110,7 +120,6 @@ class HttpRequest(object):
 
                 if new_dict['min'] != None:
                     abort(500, "Param '%s' is '%s' type and can not be used with 'min'" % (arg_name, new_dict['type'].__name__))
-
 
         return parsed_args 
     
